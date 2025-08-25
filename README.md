@@ -1,190 +1,373 @@
-# Java RAG KYC — Multi‑Agent + MCP (Azure‑first, single Spring Boot app)
+# Java RAG KYC — Multi‑Agent Orchestrator (Spring Boot + Azure)
 
-This project demonstrates **AI orchestration with Java & Azure**:
-- **Agents**
-  - **Extractor** → Azure **Document Intelligence** (prebuilt-id) to parse ID fields.
-  - **Screening** → **Azure AI Search** (supports semantic + vector hybrid).
-  - **Fraud** → **Azure AI Search** (context) + **Azure OpenAI** (LangChain4j) for JSON triage.
-  - **Risk** → **Azure OpenAI** (LangChain4j) for deterministic JSON risk scoring.
-- **Fan‑out / Fan‑in orchestration**
-  - Spring Orchestrator endpoint (`POST /api/kyc/start`) and **Durable Functions** orchestrator (Java) under `azure-functions-kyc/`.
-- **RAG & Data**
-  - Local **pgvector** (Docker Compose) and **loaders** for Azure AI Search & Vector Store.
-- **MCP Tool Server**
-  - Exposes agents & orchestrator as **Model Context Protocol** tools (Node/TS).
+**One‑line:** A single HTTP call that **extracts identity from an ID document**, **screens against sanctions**, **triages transactions for fraud patterns**, and returns a **unified risk score** with reasons.
 
 ---
 
-## Quick Start
+## Table of Contents
 
-### 1) Requirements
-- JDK 17, Maven
-- Docker (for pgvector)
-- Node 18+ (for MCP bridge, optional)
-- Azure resources (Azure OpenAI, AI Search, Document Intelligence) or use local-only pieces
+* [Overview](#overview)
+* [Architecture](#architecture)
+* [What Each Agent Does](#what-each-agent-does)
+* [Create the Project (Spring Initializr)](#create-the-project-spring-initializr)
+* [Azure Resources](#azure-resources)
+* [Configuration](#configuration)
+* [Build & Run](#build--run)
+* [Main Endpoint (One‑Call Orchestration)](#main-endpoint-onecall-orchestration)
+* [Individual Agent Endpoints](#individual-agent-endpoints)
+* [Sanctions Index Seeding (Optional)](#sanctions-index-seeding-optional)
+* [Demo Script (Screen Recording Friendly)](#demo-script-screen-recording-friendly)
+* [Troubleshooting](#troubleshooting)
+* [Optional: Vector DB with pgvector](#optional-vector-db-with-pgvector)
+* [Not Used in Core Flow](#not-used-in-core-flow)
+* [Security Notes](#security-notes)
+* [License](#license)
 
-### 2) Spin up vector DB
-```bash
-docker compose up -d
+---
+
+## Overview
+
+This project is a **multi‑agent KYC/KYB orchestrator** built with **Spring Boot**. It fans out three AI‑backed checks **in parallel** and then fans in the results into a single decision:
+
+1. **ID Extraction** — Uses **Azure AI Document Intelligence** (prebuilt model `prebuilt-idDocument`) to parse **name / DOB / document number / MRZ** and validates MRZ check digits + basic consistency.
+2. **Sanctions Screening** — Queries an **Azure AI Search** index (e.g., `sanctions-demo`) to find matches for the extracted **name** (and DOB if available).
+3. **Fraud Triage** — Uses **Azure OpenAI** to analyze **recent transactions** (or a free‑form narrative) for **velocity / structuring / threshold‑skirting** patterns.
+
+Finally, an LLM‑driven **RiskAgent** fuses these signals and returns JSON:
+
+```json
+{
+  "riskScore": 0,
+  "level": "LOW",
+  "reasons": ["No sanctions found", "Low suspicion of fraud"],
+  "recommendation": "Continue monitoring with periodic reviews."
+}
 ```
 
-### 3) Environment
-```bash
-# Azure OpenAI (LangChain4j)
-export AZURE_OPENAI_ENDPOINT=https://<aoai>.openai.azure.com
-export AZURE_OPENAI_API_KEY=<key>
-export AZURE_OPENAI_DEPLOYMENT=gpt-4o-mini
-export AZURE_OPENAI_EMBEDDING=text-embedding-3-small
+---
+
+## Architecture
+
+```
++-------------------+       +----------------------+       +--------------------+
+|  Client (Postman) | ----> |  Orchestrator (API)  | ----> |  RiskAgent (LLM)   |
++-------------------+       |  /api/kyc/start      |       +--------------------+
+                            |   ├─ ExtractorAgent  |---> Azure Document Intelligence
+                            |   ├─ ScreeningAgent  |---> Azure AI Search
+                            |   └─ FraudAgent      |---> Azure OpenAI (LLM)
+                            +----------------------+
+```
+
+* **OrchestratorController** (`/api/kyc/start`) kicks off all agents **concurrently** via `CompletableFuture`.
+* **ExtractorAgent** → `docSignals` (identity + MRZ/consistency flags).
+* **ScreeningAgent** → `sanctionsContext` (AI Search hits with scores).
+* **FraudAgent** → `fraudSignals` (LLM JSON summary of suspicious patterns).
+* **RiskAgent** → final unified decision + optional component **breakdown**.
+
+> There is also an optional **IngestController** for RAG (PDF → VectorStore) which is **not used** in the core `/api/kyc/start` flow.
+
+---
+
+## What Each Agent Does
+
+### ExtractorAgent → `docSignals`
+
+* Calls **Azure Document Intelligence** `prebuilt-idDocument`.
+* Extracts name with robust fallbacks: `FullName` → `Name` → `FirstName+LastName` → `GivenName(s)+Surname` → **MRZ** fallback.
+* Parses MRZ (TD3) and validates check digits (ICAO 9303).
+* Computes `identityMismatch`, `expired`, `quality`, and human‑readable `reasons`.
+
+### ScreeningAgent → `sanctionsContext`
+
+* Queries **Azure AI Search** index (e.g., `sanctions-demo`) for likely matches.
+* Returns `{ count, matches: [{score, doc}], reasons[] }`.
+* **Requires** at least one **`searchable` string** field (e.g., `name`, `aliases`).
+
+### FraudAgent → `fraudSignals`
+
+* **Default**: Uses **Azure OpenAI** to assess **provided transactions** or a **free‑form question**.
+* Returns strict JSON: `{ "suspicionLevel":"LOW|MEDIUM|HIGH", "reasons":[], "references":[] }`.
+* Can be extended to hybrid (Search/pgvector context + LLM).
+
+### RiskAgent → final decision
+
+* Fuses `sanctionsContext`, `docSignals`, and `fraudSignals` into one compact JSON.
+* Low‑temperature prompt for repeatability; optional JSON schema checks.
+
+---
+
+## Create the Project (Spring Initializr)
+
+1. Open **[https://start.spring.io/](https://start.spring.io/)**
+2. Choose:
+
+    * **Project:** Maven
+    * **Language:** Java
+    * **Spring Boot:** 3.3.x
+    * **Group:** `com.demo`
+    * **Artifact:** `kyc-orchestrator`
+    * **Java:** 21 (or 17)
+    * **Dependencies:** *Spring Web* (optionally: Actuator, Validation, Lombok, DevTools)
+3. Generate and import into your IDE. If you cloned this repo directly, this step is just for explanation.
+
+---
+
+## Azure Resources
+
+Create these services in the same Azure subscription/region where possible:
+
+1. **Azure OpenAI**
+
+    * Deploy a **chat** model: `gpt-4o-mini` (or similar)
+    * (Optional) Deploy an **embedding** model: `text-embedding-3-small`
+2. **Azure AI Search**
+
+    * Note the **service URL** and **Admin key**
+    * Create an index (e.g., `sanctions-demo`) and ingest sanctions CSV
+3. **Azure AI Document Intelligence** (formerly Form Recognizer)
+
+    * Note **endpoint** and **key**
+    * Use prebuilt model **`prebuilt-idDocument`** (no training required)
+
+---
+
+## Configuration
+
+Set these **environment variables** before running the app.
+
+**Windows PowerShell**
+
+```powershell
+# Azure OpenAI
+$env:AZURE_OPENAI_ENDPOINT    = "https://<aoai>.openai.azure.com/"
+$env:AZURE_OPENAI_API_KEY     = "<AOAI_KEY>"
+$env:AZURE_OPENAI_DEPLOYMENT  = "gpt-4o-mini"
+$env:AZURE_OPENAI_EMBEDDING   = "text-embedding-3-small"  # optional
 
 # Azure AI Search
-export SEARCH_ENDPOINT=https://<search>.search.windows.net
-export SEARCH_API_KEY=<key>
-export SEARCH_INDEX=sanctions-demo
+$env:SEARCH_ENDPOINT          = "https://<search>.search.windows.net"
+$env:SEARCH_API_KEY           = "<SEARCH_ADMIN_KEY>"
+$env:SEARCH_INDEX             = "sanctions-demo"
 
 # Azure Document Intelligence
-export AI_DOCINT_ENDPOINT=https://<docintel>.cognitiveservices.azure.com
-# Either use a key OR Managed Identity (DefaultAzureCredential)
-export AI_DOCINT_KEY=<cognitive-services-key>   # optional
+$env:AI_DOCINT_ENDPOINT       = "https://<di>.cognitiveservices.azure.com"
+$env:AI_DOCINT_KEY            = "<DI_KEY>"
 ```
 
-### 4) Run the app
-```bash
-mvn spring-boot:run
-```
-
-### 5) (Optional) MCP bridge
-```bash
-cd tools/mcp-bridge
-npm i && npm run build
-API_BASE=http://localhost:8080 npm start
-```
-
----
-
-## Endpoints
-
-### Ingestion
-- **POST `/api/ingest`** — Ingest PDF by URL or path into the local vector store (collection metadata supported).
-
-### Agents (Azure‑backed)
-- **POST `/api/agents/extract`** — `{ "docUrl": "https://..." }` → Azure **Document Intelligence** `prebuilt-id` output as JSON.
-- **POST `/api/agents/screen`** — `{ "name": "...", "birthDate": "YYYY-MM-DD" }` → **Azure AI Search** results (JSON).
-- **POST `/api/agents/fraud`** — `{ "query": "..." }` → **Hybrid search** (AI Search semantic + vector) + **Azure OpenAI** JSON triage.
-- **POST `/api/agents/risk`** — `{ "sanctionsContext": "...", "docSignals": "...", "fraudSignals": "..." }` → **Azure OpenAI** JSON risk score (validated).
-
-### Orchestration
-- **POST `/api/kyc/start`** — Fan‑out (Extractor, Screening, Fraud) → Fan‑in (**Risk**). Returns JSON.
-- **POST `/api/kyc/inspect-id`** — `{ "docUrl": "..." }` → ID quality & validity (expired / MRZ / blur) assessment.
-
-### Loaders
-- **POST `/api/load/sanctions-to-search`** — Push **CSV** sanctions to **Azure AI Search** index.
-- **POST `/api/load/sanctions-to-search-with-vectors`** — Same as above, plus **embeddings** for vector field.
-- **POST `/api/load/sanctions-to-vector`** — Ingest sanctions CSV into **pgvector** (`collection=sanctions`).
-
-### Search (hybrid example)
-- **POST `/api/load/search/hybrid`** — Body `{ "q": "..." }`. Runs semantic + vector KNN over Azure AI Search (see loader code).
-
----
-
-## ID Inspection (Onboarding)
-
-**`POST /api/kyc/inspect-id`** → returns structured JSON:
-- **quality**: average OCR confidence; blur/glare suspicion
-- **validity**: expired, expiry date, DOB
-- **consistency**: MRZ presence/validity & consistency with fields (ICAO 9303 checksums)
-- **risk**: LOW / MEDIUM / HIGH with reasons
-- **idInfo**: extracted ID attributes (document number, first/last name)
-
-Implementation: `IdInspectionService` uses **Azure Document Intelligence** + MRZ checksum utilities and simple heuristics.
-
----
-
-## Validation (JSON Schema)
-
-Responses from **Fraud** and **Risk** agents are validated against JSON schemas:
-- `src/main/resources/schemas/fraud.schema.json`
-- `src/main/resources/schemas/risk.schema.json`
-
-Utility: `JsonSchemaValidator` (based on *networknt* JSON schema validator).
-
----
-
-## Azure Durable Functions (Java)
-
-Folder `azure-functions-kyc/` contains a **Durable Functions** orchestrator:
-- **Start**: `POST /api/kyc/start` (Function) schedules `KycOrchestrator`
-- **Fan‑out**: `CallExtractor`, `CallScreening`, `CallFraud`
-- **Fan‑in**: `CallRiskLc4j` → returns risk JSON
-
-### Local run
-```bash
-cd azure-functions-kyc
-mvn clean package
-APP_BASE=http://localhost:8080 mvn azure-functions:run
-```
-
-### Deploy (Consumption)
-Use the bash steps in your runbook (resource group, storage, function app creation, `azure-functions:deploy`) and set app settings:
-- `APP_BASE` (public URL of the Spring Boot API)
-- Azure OpenAI & Document Intelligence env vars
-
----
-
-## Sample Data & Postman
-
-- **Static PDFs** (served by Spring):  
-  - `http://localhost:8080/docs/kyc_policy.pdf`  
-  - `http://localhost:8080/docs/sanctions_guideline.pdf`  
-  - `http://localhost:8080/docs/kyc_checklist.pdf`  
-  - `http://localhost:8080/docs/fraud_signals.pdf`  
-  - `http://localhost:8080/docs/risk_policy.pdf`
-
-- **Sanctions CSV**: `src/main/resources/sample-data/sanctions.csv`
-
-- **Postman Collection**: `postman/Java-RAG-KYC-MultiAgent.postman_collection.json`
-
----
-
-## Configuration Reference (env)
-
-| Purpose | Variable |
-|---|---|
-| AOAI chat | `AZURE_OPENAI_ENDPOINT`, `AZURE_OPENAI_API_KEY`, `AZURE_OPENAI_DEPLOYMENT` |
-| AOAI embedding | `AZURE_OPENAI_EMBEDDING` |
-| AI Search | `SEARCH_ENDPOINT`, `SEARCH_API_KEY`, `SEARCH_INDEX` |
-| Document Intelligence | `AI_DOCINT_ENDPOINT`, `AI_DOCINT_KEY` *(or Managed Identity)* |
-| Spring AI embedding fallback | `spring.ai.openai.embedding.options.model` (application.properties) |
-| Functions (orchestrator) | `APP_BASE` (points to Spring API) |
-
----
-
-## MCP Tools (optional)
-
-`tools/mcp-bridge` exposes:
-- `ingest`, `agent_extract`, `agent_screen`, `agent_fraud`, `agent_risk`, `kyc_orchestrate`
-
-Run:
-```bash
-cd tools/mcp-bridge
-npm i && npm run build
-API_BASE=http://localhost:8080 npm start
-```
-
----
-
-## Notes
-- This repository is **demo‑friendly**: light prompts, explicit JSON, and guardrails via JSON Schema.
-- Replace sample PDFs with **real ID images** for best ID Inspection results.
-
-
-### Using classpath resources (no upload, no public URL)
-Place your test documents under `src/main/resources/customer-docs/` and call endpoints with `resourcePath`:
+**bash/zsh**
 
 ```bash
-# Extractor (Azure Document Intelligence) from classpath
-curl -s http://localhost:8080/api/agents/extract -H 'Content-Type: application/json'  -d '{"resourcePath":"customer-docs/sample-id.pdf"}' | jq .
+export AZURE_OPENAI_ENDPOINT="https://<aoai>.openai.azure.com/"
+export AZURE_OPENAI_API_KEY="<AOAI_KEY>"
+export AZURE_OPENAI_DEPLOYMENT="gpt-4o-mini"
+export AZURE_OPENAI_EMBEDDING="text-embedding-3-small"   # optional
 
-# ID Inspection from classpath
-curl -s http://localhost:8080/api/kyc/inspect-id -H 'Content-Type: application/json'  -d '{"resourcePath":"customer-docs/sample-id.pdf"}' | jq .
+export SEARCH_ENDPOINT="https://<search>.search.windows.net"
+export SEARCH_API_KEY="<SEARCH_ADMIN_KEY>"
+export SEARCH_INDEX="sanctions-demo"
+
+export AI_DOCINT_ENDPOINT="https://<di>.cognitiveservices.azure.com"
+export AI_DOCINT_KEY="<DI_KEY>"
 ```
-> Note: In production, prefer upload or signed URL; this path is **classpath-only** for local demos.
+
+---
+
+## Build & Run
+
+```bash
+mvn -q spring-boot:run
+```
+
+---
+
+## Main Endpoint (One‑Call Orchestration)
+
+**POST** `/api/kyc/start`
+
+### Request body (record `KycStartRequest`)
+
+```json
+{
+  "name": "",                 
+  "birthDate": "",
+  "question": "Highlight risky patterns (velocity, structuring, threshold-skirting) in the last 6 months.",
+  "documentText": "customer-docs/passport_valid.png",   
+  "transactions": [
+    { "ts":"2025-02-10T09:12:00Z","amt":120,"country":"US","channel":"card_purchase","device":"M1" },
+    { "ts":"2025-02-12T18:40:00Z","amt":75,"country":"US","channel":"card_purchase","device":"M1" }
+  ]
+}
+```
+
+* `documentText`: If it starts with `http`, the extractor fetches by URL; else it reads from classpath (`src/main/resources/...`).
+* If `name` / `birthDate` are not provided, the orchestrator uses values parsed from the document (if extraction succeeded).
+
+### Response (shape)
+
+```json
+{
+  "inputs": {
+    "sanctionsContext": { "count": 0, "matches": [], "reasons": [] },
+    "docSignals": {
+      "idInfo": { "fullName": "JANE DOE", "dob": "1992-04-12", "docNo": "...", "country": "EX" },
+      "mrzValid": true,
+      "identityMismatch": false,
+      "expired": false,
+      "quality": 0.92,
+      "croppingHint": false,
+      "reasons": []
+    },
+    "fraudSignals": { "raw": "{...}" },
+    "identityUsed": { "name": "JANE DOE", "dob": "1992-04-12", "source": "document" },
+    "documentRef": "customer-docs/passport_valid.png"
+  },
+  "model": { "provider": "Azure OpenAI", "deployment": "gpt-4o-mini" },
+  "output": {
+    "result": {
+      "riskScore": 10, "level": "LOW",
+      "reasons": [ "No sanctions found", "Low suspicion of fraud" ],
+      "recommendation": "Continue monitoring with periodic reviews."
+    },
+    "breakdown": { "sanctions": 0, "doc": 30, "fraud": 10 }
+  }
+}
+```
+
+---
+
+## Individual Agent Endpoints
+
+### 1) Extract (Document Intelligence)
+
+**POST** `/api/agents/extract`
+
+```json
+{ "resourcePath": "customer-docs/passport_valid.png" }
+```
+
+*or*
+
+```json
+{ "docUrl": "https://public-host/passport.png" }
+```
+
+### 2) Screen (Sanctions)
+
+**POST** `/api/agents/screen`
+
+```json
+{ "name": "JANE DOE", "birthDate": "1992-04-12" }
+```
+
+### 3) Fraud (LLM triage)
+
+**POST** `/api/agents/fraud`
+
+```json
+{
+  "query": "Highlight risky patterns (velocity, structuring, threshold-skirting) in the last 6 months.",
+  "transactions": [
+    { "ts":"2025-02-10T09:12:00Z","amt":9800,"country":"US","channel":"cash_deposit" },
+    { "ts":"2025-02-10T12:05:00Z","amt":9950,"country":"US","channel":"cash_deposit" },
+    { "ts":"2025-02-11T08:00:00Z","amt":15000,"country":"RU","channel":"wire_out" }
+  ]
+}
+```
+
+### 4) Risk (fusion)
+
+**POST** `/api/agents/risk`
+
+```json
+{ "sanctionsContext": "...", "docSignals": "...", "fraudSignals": "..." }
+```
+
+> These agent endpoints are handy for debugging and for showing each step in isolation during a demo.
+
+---
+
+## Sanctions Index Seeding (Optional)
+
+If your repo includes a loader (e.g., `LoaderController` + `AzureSearchLoaderService`):
+
+**POST** `http://localhost:8080/api/load/sanctions-to-search`
+
+```json
+{ }
+```
+
+**Response:** `{"upserted": <N>, "status": "ok"}`
+
+> Ensure your index schema marks at least one string field as **`searchable: true`**; otherwise queries that use `search=*` will fail.
+
+---
+
+## Demo Script (Screen Recording Friendly)
+
+1. **Spring Initializr** — open [https://start.spring.io](https://start.spring.io) and show basic settings (Project, Boot version, Dependencies).
+2. **Azure Portal** — briefly show created resources:
+
+    * Azure OpenAI (deployed models)
+    * Azure AI Search (index name)
+    * Azure AI Document Intelligence (endpoint)
+3. **Set environment variables** — paste the commands in your terminal (PowerShell/bash).
+4. **Run the app** — `mvn -q spring-boot:run` and wait until it starts.
+5. **(Optional) Seed sanctions** — call `/api/load/sanctions-to-search` if you have the loader.
+6. **Postman — LOW risk** — call `/api/kyc/start` with a **valid** sample passport and small card transactions.
+7. **Postman — HIGH risk** — call `/api/kyc/start` with a **tampered MRZ** image and structuring/velocity examples.
+8. **(Optional) Drill‑down** — call `/api/agents/*` endpoints to show each agent’s raw JSON.
+9. **Wrap‑up** — show the consolidated risk JSON with the component breakdown.
+
+---
+
+## Troubleshooting
+
+**Document Intelligence: “Long running operation failed.”**
+
+* Confirm model id is `prebuilt-idDocument` (case‑sensitive).
+* Ensure the **region** supports the model; use a current **Cognitive Services** resource for DI.
+* If using `docUrl`, it must be **publicly reachable** and a supported type (PNG/JPEG/PDF, typical size limits).
+* Prefer **classpath BinaryData** (`resourcePath`) during demos to remove network variables.
+* Enable HTTP logging in the client builder to surface service errors.
+
+**Azure Search: “OperationNotAllowed … must contain one or more searchable string fields.”**
+
+* Your index must include at least one `searchable: true` field (`name`, `aliases`, etc.). Recreate or update the index and re‑ingest.
+
+**“Name missing” in results**
+
+* The extractor falls back in order: `FullName` → `Name` → `FirstName+LastName` / `GivenName(s)+Surname` → MRZ.
+* If the image is cropped/blurred or MRZ is invalid, you may see missing names — try a known‑good sample or the DI Studio.
+
+**Same fraud outcome each time**
+
+* FraudAgent is intentionally **independent** of extraction/screening for explainability. Change the `transactions`/`query` input to see different results or wire it to real data.
+
+---
+
+## Optional: Vector DB with pgvector
+
+* Run Postgres + pgvector via Docker.
+* Upsert embeddings of internal policies/FAQs or sanctions data.
+* Do k‑NN queries (`<=>`) with IVFFLAT indexes for fast retrieval.
+* You can integrate this as an alternative to Azure Search for certain RAG scenarios.
+
+---
+
+## Not Used in Core Flow
+
+* **IngestController (`/api/ingest`)** — PDF → VectorStore for RAG; not used by `/api/kyc/start`.
+* **Lc4jRiskController** — helper to test RiskAgent directly; safe to remove/disable for demos.
+
+---
+
+## Security Notes
+
+* Do **not** commit secrets. Use environment variables, Azure Key Vault, or Managed Identity.
+* This is a **demo**; real KYC/KYB requires audited sources, controls, and governance.
+
+---
+
+## License
+
+Demo/sample code. Adapt to your organization’s license as needed.
