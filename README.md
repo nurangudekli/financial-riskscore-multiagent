@@ -9,7 +9,7 @@
 * [Overview](#overview)
 * [Architecture](#architecture)
 * [What Each Agent Does](#what-each-agent-does)
-* [Create the Project (Spring Initializr)](#create-the-project-spring-initializr)
+* [Clone the Project](#create-the-project-spring-initializr)
 * [Azure Resources](#azure-resources)
 * [Configuration](#configuration)
 * [Build & Run](#build--run)
