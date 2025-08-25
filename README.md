@@ -354,13 +354,6 @@ If your repo includes a loader (e.g., `LoaderController` + `AzureSearchLoaderSer
 
 ---
 
-## Not Used in Core Flow
-
-* **IngestController (`/api/ingest`)** — PDF → VectorStore for RAG; not used by `/api/kyc/start`.
-* **Lc4jRiskController** — helper to test RiskAgent directly; safe to remove/disable for demos.
-
----
-
 ## Security Notes
 
 * Do **not** commit secrets. Use environment variables, Azure Key Vault, or Managed Identity.
