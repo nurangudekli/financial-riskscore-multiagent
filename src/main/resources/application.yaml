@@ -1,0 +1,22 @@
+# src/main/resources/application.yaml
+azure:
+  openai:
+    endpoint: ${AZURE_OPENAI_ENDPOINT}
+    api-key:  ${AZURE_OPENAI_API_KEY}
+    deployment: ${AZURE_OPENAI_DEPLOYMENT:gpt-4o-mini}
+    embedding:  ${AZURE_OPENAI_EMBEDDING:text-embedding-3-small}
+
+  search:
+    endpoint: ${SEARCH_ENDPOINT}
+    api-key:  ${SEARCH_API_KEY}
+    index:    ${SEARCH_INDEX:sanctions-demo}
+
+  documentintelligence:
+    endpoint: ${AI_DOCINT_ENDPOINT}
+    api-key:  ${AI_DOCINT_KEY}
+
+spring:
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/postgres}
+    username: ${DB_USER:postgres}
+    password: ${DB_PASSWORD:postgres}

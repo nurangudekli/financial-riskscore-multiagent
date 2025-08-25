@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["suspicionLevel", "reasons", "references"],
+  "properties": {
+    "suspicionLevel": { "type": "string", "enum": ["LOW", "MEDIUM", "HIGH"] },
+    "reasons": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+    "references": { "type": "array", "items": { "type": "string" } }
+  },
+  "additionalProperties": true
+}

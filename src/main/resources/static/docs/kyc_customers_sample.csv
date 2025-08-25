@@ -1,0 +1,4 @@
+customer_id,full_name,dob,nationality,residence_country,pep_status,risk_score,onboarding_date
+C0001,John Example,1980-05-02,Exampleland,Qatar,NO,5,2025-08-01
+C0002,Mary Demo,1992-11-09,Utopia,UAE,NO,8,2025-07-15
+C0003,Ali Sample,1975-03-20,Qatar,Qatar,YES_FAMILY,12,2025-06-28

@@ -1,0 +1,20 @@
+{
+  "case_id": "EDD-2025-001",
+  "customer_id": "C0003",
+  "risk_band": "High",
+  "triggers": [
+    "PEP_family",
+    "Cross-border payments"
+  ],
+  "documents": [
+    "passport_copy",
+    "bank_statements_6m",
+    "employment_contract"
+  ],
+  "analyst_notes": "Reviewed adverse media hits; no substantiated allegations. Source of wealth explained and evidenced.",
+  "decision": {
+    "status": "Approved with conditions",
+    "monitoring": "Enhanced",
+    "review_in_months": 6
+  }
+}

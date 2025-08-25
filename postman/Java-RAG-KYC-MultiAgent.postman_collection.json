@@ -1,0 +1,337 @@
+{
+  "info": {
+    "name": "Java RAG KYC \u2014 Multi-Agent Demo",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "e3d7b0f6-7b33-4a8f-8e0a-a1db3b2e1234"
+  },
+  "item": [
+    {
+      "name": "Ingest (PDF URL \u2192 kyc)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base}}/api/ingest",
+          "host": [
+            "{{base}}"
+          ],
+          "path": [
+            "api",
+            "ingest"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"url\": \"http://localhost:8080/docs/kyc_policy.pdf\", \"collection\": \"kyc\"}"
+        }
+      }
+    },
+    {
+      "name": "Ingest (PDF URL \u2192 sanctions)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base}}/api/ingest",
+          "host": [
+            "{{base}}"
+          ],
+          "path": [
+            "api",
+            "ingest"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"url\": \"http://localhost:8080/docs/sanctions_guideline.pdf\", \"collection\": \"sanctions\"}"
+        }
+      }
+    },
+    {
+      "name": "Agent: Extractor",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base}}/api/agents/extract",
+          "host": [
+            "{{base}}"
+          ],
+          "path": [
+            "api",
+            "agents",
+            "extract"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"docUrl\": \"http://localhost:8080/docs/kyc_policy.pdf\"}"
+        }
+      }
+    },
+    {
+      "name": "Agent: Screening",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base}}/api/agents/screen",
+          "host": [
+            "{{base}}"
+          ],
+          "path": [
+            "api",
+            "agents",
+            "screen"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"name\": \"Karim Noor\", \"birthDate\": \"1978-11-20\"}"
+        }
+      }
+    },
+    {
+      "name": "Agent: Fraud",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base}}/api/agents/fraud",
+          "host": [
+            "{{base}}"
+          ],
+          "path": [
+            "api",
+            "agents",
+            "fraud"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"query\": \"card-not-present spike in last 24h\"}"
+        }
+      }
+    },
+    {
+      "name": "Agent: Risk",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base}}/api/agents/risk",
+          "host": [
+            "{{base}}"
+          ],
+          "path": [
+            "api",
+            "agents",
+            "risk"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"sanctionsContext\": \"[]\", \"docSignals\": \"{}\", \"fraudSignals\": \"{}\"}"
+        }
+      }
+    },
+    {
+      "name": "Orchestrate KYC",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base}}/api/kyc/start",
+          "host": [
+            "{{base}}"
+          ],
+          "path": [
+            "api",
+            "kyc",
+            "start"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"name\": \"Alice Doe\", \"birthDate\": \"1990-01-01\", \"question\": \"any red flags?\", \"documentText\": \"Name: Alice Doe; Country: QA;\"}"
+        }
+      }
+    },
+    {
+      "name": "LC4J Risk Score (Azure OpenAI)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base}}/api/lc4j/risk-score",
+          "host": [
+            "{{base}}"
+          ],
+          "path": [
+            "api",
+            "lc4j",
+            "risk-score"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"sanctionsMatches\": [], \"docSignals\": {}, \"fraudSignals\": {}}"
+        }
+      }
+    },
+    {
+      "name": "Loader: Sanctions \u2192 AI Search (with vectors)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base}}/api/load/sanctions-to-search-with-vectors",
+          "host": [
+            "{{base}}"
+          ],
+          "path": [
+            "api",
+            "load",
+            "sanctions-to-search-with-vectors"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{}"
+        }
+      }
+    },
+    {
+      "name": "KYC: Inspect ID (fake/blur/expired)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base}}/api/kyc/inspect-id",
+          "host": [
+            "{{base}}"
+          ],
+          "path": [
+            "api",
+            "kyc",
+            "inspect-id"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"docUrl\": \"http://localhost:8080/docs/kyc_policy.pdf\"}"
+        }
+      }
+    },
+    {
+      "name": "Extractor (classpath resource)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base}}/api/agents/extract",
+          "host": [
+            "{{base}}"
+          ],
+          "path": [
+            "api",
+            "agents",
+            "extract"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"resourcePath\": \"customer-docs/sample-id.pdf\"}"
+        }
+      }
+    },
+    {
+      "name": "KYC Inspect (classpath resource)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base}}/api/kyc/inspect-id",
+          "host": [
+            "{{base}}"
+          ],
+          "path": [
+            "api",
+            "kyc",
+            "inspect-id"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"resourcePath\": \"customer-docs/sample-id.pdf\"}"
+        }
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base",
+      "value": "http://localhost:8080"
+    }
+  ]
+}

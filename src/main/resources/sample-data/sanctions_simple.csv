@@ -1,0 +1,21 @@
+id,name,aliases,country,birthDate,program,list,sanction_type,sanction_reason,remarks
+d3aba9dc-dbd4-4fd0-9e55-5fd45459f3be,Tarık Aydin,Aydin Tarık; Tarik Aydin; Tarık Aydin,Türkiye,1964-03-24,OFAC SDN,OFAC SDN,Travel Ban,Involved in proliferation activities,Subject owns assets in third countries.
+466d733f-0068-4897-8d0e-2dd860e1b398,Ahmet Kowalski,Ahmed Kowalski; Ahmet Kowalski,Qatar,1971-05-05,UN Consolidated,UN Consolidated,Sectoral Sanctions,Human rights violations,Potential match requires enhanced due diligence.
+8e77bb45-254b-4c6d-bfec-7e9596698f03,Sergii Petrov,Sergii Petrov,Iraq,1956-07 | 1964-05-03,UN Consolidated,OFAC SDN,Sectoral Sanctions,Involved in proliferation activities,Potential match requires enhanced due diligence.
+18c7829e-50d4-4a85-912b-170ce01ee9b1,Zeynep Kuznetsov,Zeynep Kuznetsov,Saudi Arabia,1975-05-03,UK OFSI,UK OFSI,Travel Ban,Human rights violations,Subject owns assets in third countries.
+c6b2266e-3d47-4cb1-901c-76693ecb6be2,Jin Demir,Jin Demir,Qatar,1959,Canada SEMA,UK OFSI,Sectoral Sanctions,Human rights violations,Potential match requires enhanced due diligence.
+d925c54e-40da-4866-bfb5-280e44f2b6f6,Suleyman Karimi,Karimi Suleyman; Suleyman Karimi,Russia,1979,UN Consolidated,Canada SEMA,Sectoral Sanctions,Involved in proliferation activities,Potential match requires enhanced due diligence.
+63790aa2-0be8-4c40-887d-48e548488f1a,Mariya Rezayi,Mariya Rezayi,Qatar,1965-10-03 | 1973-05-08,EU CFSP,UK OFSI,Sectoral Sanctions,Involved in proliferation activities,Potential match requires enhanced due diligence.
+53ff24d8-f442-4ce5-a414-4f708b697f27,Hüda Petrov,Huda Petrov; Hüda Petrov,Iran,1992-11,OFAC SDN,UN Consolidated,Asset Freeze,Corruption and misappropriation of state assets,Multiple transliterations reported.
+611ea032-e687-4b72-937f-3cd3f6ea0c19,Yusuf Kaya,Yusuf Kaya,Iran,1981-04-18,UK OFSI,EU CFSP,Asset Freeze,Suspected terrorism financing,Multiple transliterations reported.
+fd7ce8c9-44d7-45b3-ac27-c8e3038bc447,Oğuz Hosseini,Hosseini Oğuz; Oguz Hosseini; Oğuz Hosseini; Oğuzhan Hosseini,Qatar,1958-07,OFAC SDN,Canada SEMA,Asset Freeze,Suspected terrorism financing,Subject owns assets in third countries.
+55ce343f-030d-4bf3-814a-10ae1ee7582b,Sergey Zhang,Sergey Zhang; Zhang Sergey,Iran,2000-08,UN Consolidated,EU CFSP,Asset Freeze,Corruption and misappropriation of state assets,Subject owns assets in third countries.
+b821f2a9-2faf-480a-98d2-90162c6c6e57,Li Ivanov,Ivanov Li; Li Ivanov,China,2004,Canada SEMA,EU CFSP,Sectoral Sanctions,Corruption and misappropriation of state assets,Potential match requires enhanced due diligence.
+3dc54b22-a7b4-45fe-94cf-6e7e358e8554,Muhammad Петров,Mohamad Петров; Muhammad Петров,Saudi Arabia,1966,OFAC SDN,UK OFSI,Sectoral Sanctions,Corruption and misappropriation of state assets,Multiple transliterations reported.
+933d4259-6fc9-4d3a-82cf-0e7143eb3311,Yilmaz Saleh,Saleh Yilmaz; Yilmaz Saleh,Türkiye,1995,EU CFSP,UN Consolidated,Asset Freeze,Suspected terrorism financing,Associated with front companies in multiple jurisdictions.
+75229474-c25e-4757-b1b2-454b06aee752,Jin Rahimi,Jin Rahimi,Saudi Arabia,1955-11,UN Consolidated,EU CFSP,Export Restrictions,Corruption and misappropriation of state assets,Multiple transliterations reported.
+cbb853b3-923f-41c0-bcf9-3e4a13e79605,Maria Yılmaz,Maria Yilmaz; Maria Yılmaz; Yılmaz Maria,Türkiye,1969-06-26 | 1972-04-22,EU CFSP,EU CFSP,Travel Ban,Cyber operations against critical infrastructure,Also known to use forged travel documents.
+31f2d460-bf04-4a8f-b769-42a328fa717a,Mehmet Al-Fulan,Mehmet Al-Fulan,Ukraine,1979-06-10,UN Consolidated,OFAC SDN,Arms Embargo,Human rights violations,Potential match requires enhanced due diligence.
+2484b1df-dc61-4ceb-9f59-984fcecd0864,Muhammad Иванов,Mohamad Иванов; Muhammad Иванов,Saudi Arabia,1952-02,UK OFSI,Canada SEMA,Travel Ban,Human rights violations,Subject owns assets in third countries.
+991ec9fb-00bd-4317-bd2a-0938dfb576db,Leila Ismayilov,Leila Ismayilov,Egypt,1969,Canada SEMA,EU CFSP,Travel Ban,Cyber operations against critical infrastructure,Potential match requires enhanced due diligence.
+b7437a61-ef8a-47c5-ba66-f7d99ac2402d,Çağla Yılmaz,Cagla Yilmaz; Çağla Yılmaz,Saudi Arabia,1963,UK OFSI,EU CFSP,Sectoral Sanctions,Cyber operations against critical infrastructure,Also known to use forged travel documents.
