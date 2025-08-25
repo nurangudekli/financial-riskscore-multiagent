@@ -302,48 +302,6 @@ If your repo includes a loader (e.g., `LoaderController` + `AzureSearchLoaderSer
 
 ---
 
-## Demo Script (Screen Recording Friendly)
-
-1. **Spring Initializr** — open [https://start.spring.io](https://start.spring.io) and show basic settings (Project, Boot version, Dependencies).
-2. **Azure Portal** — briefly show created resources:
-
-    * Azure OpenAI (deployed models)
-    * Azure AI Search (index name)
-    * Azure AI Document Intelligence (endpoint)
-3. **Set environment variables** — paste the commands in your terminal (PowerShell/bash).
-4. **Run the app** — `mvn -q spring-boot:run` and wait until it starts.
-5. **(Optional) Seed sanctions** — call `/api/load/sanctions-to-search` if you have the loader.
-6. **Postman — LOW risk** — call `/api/kyc/start` with a **valid** sample passport and small card transactions.
-7. **Postman — HIGH risk** — call `/api/kyc/start` with a **tampered MRZ** image and structuring/velocity examples.
-8. **(Optional) Drill‑down** — call `/api/agents/*` endpoints to show each agent’s raw JSON.
-9. **Wrap‑up** — show the consolidated risk JSON with the component breakdown.
-
----
-
-## Troubleshooting
-
-**Document Intelligence: “Long running operation failed.”**
-
-* Confirm model id is `prebuilt-idDocument` (case‑sensitive).
-* Ensure the **region** supports the model; use a current **Cognitive Services** resource for DI.
-* If using `docUrl`, it must be **publicly reachable** and a supported type (PNG/JPEG/PDF, typical size limits).
-* Prefer **classpath BinaryData** (`resourcePath`) during demos to remove network variables.
-* Enable HTTP logging in the client builder to surface service errors.
-
-**Azure Search: “OperationNotAllowed … must contain one or more searchable string fields.”**
-
-* Your index must include at least one `searchable: true` field (`name`, `aliases`, etc.). Recreate or update the index and re‑ingest.
-
-**“Name missing” in results**
-
-* The extractor falls back in order: `FullName` → `Name` → `FirstName+LastName` / `GivenName(s)+Surname` → MRZ.
-* If the image is cropped/blurred or MRZ is invalid, you may see missing names — try a known‑good sample or the DI Studio.
-
-**Same fraud outcome each time**
-
-* FraudAgent is intentionally **independent** of extraction/screening for explainability. Change the `transactions`/`query` input to see different results or wire it to real data.
-
----
 
 ## Optional: Vector DB with pgvector
 
