@@ -96,20 +96,15 @@ Finally, an LLM‑driven **RiskAgent** fuses these signals and returns JSON:
 
 ---
 
-## Create the Project (Spring Initializr)
+## Clone the project
 
-1. Open **[https://start.spring.io/](https://start.spring.io/)**
-2. Choose:
+ Choose:
 
     * **Project:** Maven
     * **Language:** Java
     * **Spring Boot:** 3.3.x
     * **Group:** `com.demo`
-    * **Artifact:** `kyc-orchestrator`
     * **Java:** 21 (or 17)
-    * **Dependencies:** *Spring Web* (optionally: Actuator, Validation, Lombok, DevTools)
-3. Generate and import into your IDE. If you cloned this repo directly, this step is just for explanation.
-
 ---
 
 ## Azure Resources
